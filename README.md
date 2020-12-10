@@ -4,3 +4,5 @@
 Implemented Matlab code of (fast) proximal gradient descent method for the group lasso problem.
 
 Run [group_lasso_demo.m](code/group_lasso_demo.m) to generate the results.
+
+![](result/convergence.png)
