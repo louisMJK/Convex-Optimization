@@ -134,8 +134,8 @@ function [g] = Sub_h(x)
     for i = 1:n
         if norm(x(i,1:l),2) ~= 0
             g(i,1:l) = x(i,1:l) / norm(x(i,1:l),2);
-%         else
-%             g(i,1:l) = 0.1*rand(1,l)/sqrt(l);
+        else
+            g(i,1:l) = 0.1*ones(1,l)/sqrt(l);
         end
     end
 end

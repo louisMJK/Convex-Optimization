@@ -1,6 +1,8 @@
-% Fast proximal gradient method for the primal problem.
-function [x, iter, out] = gl_FProxGD_primal(x0, A, b, mu0, opts)
+% Fast (Nesterov/Accelerated) Gradient Method for the Smoothed Primal Problem.
+function [x, iter, out] = gl_FGD_primal(x0, A, b, mu0, opts)
 % default parameters
+% smmothing parameter
+if ~isfield(opts, 'gamma');             opts.gamma = 1e-4; end
 if ~isfield(opts, 'maxit');             opts.maxit = 100; end
 if ~isfield(opts, 'maxit_inn');         opts.maxit_inn = 500; end
 if ~isfield(opts, 'ftol');              opts.ftol = 1e-10; end
@@ -21,12 +23,13 @@ out.f = [];
 itr = 0;
 x = x0;
 mu_t = opts.mu1;
+gamma = opts.gamma;
 
 f = Func(A, b, mu_t, x);
 
 opts1 = opts.opts1;
-opts1.ftol = opts.ftol * opts.ftol_init_ratio;
-opts1.gtol = opts.gtol * opts.gtol_init_ratio;
+opts1.ftol = opts.ftol*opts.ftol_init_ratio;
+opts1.gtol = opts.gtol*opts.gtol_init_ratio;
 out.itr_inn = 0;
 
 while itr < opts.maxit
@@ -36,7 +39,7 @@ while itr < opts.maxit
     opts1.alpha0 = opts.alpha0;
     
     % update f and X
-    [x, out1] = gl_proxGD_inn(x, A, b, mu_t, mu0, opts1);
+    [x, out1] = gl_FISTA_inn(x, A, b, mu_t, mu0, opts1, gamma);
     fp = f;
     f = out1.f(end);
     out.f = [out.f, out1.f];
@@ -45,9 +48,8 @@ while itr < opts.maxit
     if ~out1.flag
         mu_t = max(mu_t * opts.factor, mu0);
     end
-    
     % stop
-    norm_G = norm(GD_g(A,b,x) + Sub_h(x), 2);    
+    norm_G = norm(GD_g(A,b,x) + GD_h(x,gamma), 2);    
     if mu_t == mu0 && (norm_G < opts.gtol || abs(f-fp) < opts.ftol)
         break;
     end
@@ -59,7 +61,7 @@ out.itr = itr;
 iter = out.itr_inn;
 
 
-function [x, out] = gl_proxGD_inn(x, A, b, mu, mu0, opts)
+function [x, out] = gl_FISTA_inn(x, A, b, mu, mu0, opts, gamma)
 % step size of mu_t
 if mu > mu0
     opts.step_type = 'fixed';
@@ -73,28 +75,24 @@ f_best = inf;
 x_p1 = x;
 x_p2 = x;
 
-for k = 1:opts.maxit   
+for k = 1:opts.maxit
     % momentum
     y = x_p1 + (k-2)/(k+1)*(x_p1-x_p2);  
     % step size
     t = set_step(k, opts);
     z = y - t * GD_g(A, b, y);
-    
     % update X
-    x = prox_th(t, z, mu);
+    x = prox_th(t, z, mu, gamma);
     x(abs(x) < 1e-4) = 0;
     x_p2 = x_p1;
     x_p1 = x;
-    
     % objective value
     f_val = Func(A, b, mu, x);
     out.f_hist(k) = f_val;
-    
     % update optimal value
     f_best = min(f_best, f_val);
     out.f_hist_best(k) = f_best;
     out.f = [out.f, Func(A, b, mu0, x)];
-    
     % stop
     FDiff = abs( out.f_hist(k)-out.f_hist(max(k-1,1))) / abs(out.f_hist_best(1) );
     BFDiff = out.f_hist_best(max(k-10,1)) - out.f_hist_best(k);
@@ -113,8 +111,8 @@ end
 out.itr = k;
 end
 % proximal operator of mu*||X||1,2
-function [prox] = prox_th(t, z, mu)
-    prox = z - t * mu * Sub_h(z);
+function [prox] = prox_th(t, z, mu, gamma)
+    prox = z - t * mu * GD_h(z, gamma);
 end
 function a = set_step(k, opts)
 type = opts.step_type;
@@ -131,15 +129,15 @@ end
 function [g] = GD_g(A, b, x)
     g = A'*(A*x-b);
 end
-% subgradient of ||X||1,2 
-function [g] = Sub_h(x)
+% gradient of smooth ||X||1,2 
+function [g] = GD_h(x, gamma)
     [n,l] = size(x);
     g = zeros(n,l);
     for i = 1:n
-        if norm(x(i,1:l),2) ~= 0
+        if norm(x(i,1:l),2) >= gamma
             g(i,1:l) = x(i,1:l) / norm(x(i,1:l),2);
         else
-            g(i,1:l) = 0.1*ones(1,l)/sqrt(l);
+            g(i,1:l) = x(i,1:l) / gamma;
         end
     end
 end

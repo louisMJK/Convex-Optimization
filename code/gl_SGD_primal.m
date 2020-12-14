@@ -1,6 +1,5 @@
 % subgradient method for group lasso
 function [x, iter, out] = gl_SGD_primal(x0, A, b, mu0, opts)
-tic;
 % default parameters
 if ~isfield(opts, 'maxit');             opts.maxit = 100; end
 if ~isfield(opts, 'maxit_inn');         opts.maxit_inn = 500; end
@@ -59,7 +58,6 @@ end
 
 out.fval = f;
 out.itr = itr;
-out.t = toc;
 iter = out.itr_inn;
 
 
@@ -74,12 +72,11 @@ function [g] = sub_h(x)
         if norm(x(i,1:l),2) ~= 0
             g(i,1:l) = x(i,1:l) / norm(x(i,1:l),2);
         else
-            g(i,1:l) = 0.1*rand(1,l)/sqrt(l);
+            g(i,1:l) = 0.1*ones(1,l)/sqrt(l);
         end
     end
 end
 function [x, out] = gl_subgrad_inn(x, A, b, mu, mu0, opts)
-
 if mu > mu0
     opts.step_type = 'fixed';
 else
