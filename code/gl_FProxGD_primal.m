@@ -114,7 +114,14 @@ out.itr = k;
 end
 % proximal operator of mu*||X||1,2
 function [prox] = prox_th(t, z, mu)
-    prox = z - t * mu * Sub_h(z);
+prox = z;
+for i = 1:size(z,1)
+    if norm(z(i,:)) <= t*mu
+        prox(i,:) = 0;
+    else
+        prox(i,:) = z(i,:) / norm(z(i,:)) * (norm(z(i,:))-t*mu);
+    end
+end
 end
 function a = set_step(k, opts)
 type = opts.step_type;
