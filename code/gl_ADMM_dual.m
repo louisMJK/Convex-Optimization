@@ -3,8 +3,8 @@ function [X, iter, out] = gl_ADMM_dual(x0, A, B, mu, opts)
 % default parameters
 if ~isfield(opts, 'maxit'); opts.maxit = 5000; end
 if ~isfield(opts, 'ftol');  opts.ftol = 1e-10; end
-if ~isfield(opts, 'gtol');  opts.gtol = 1e-8; end
-if ~isfield(opts, 'rho');   opts.rho = 0.01; end
+if ~isfield(opts, 'gtol');  opts.gtol = 1e-10; end
+if ~isfield(opts, 'rho');   opts.rho = 1; end
 if ~isfield(opts, 'gamma'); opts.gamma = 1.618; end
 
 % initialization
@@ -17,7 +17,7 @@ k = 0;
 l = size(x0,2);
 Z = randn(m,l);
 W = zeros(n,l);
-X = zeros(n,l);
+X = x0;
 rho = opts.rho;
 gamma = opts.gamma;
 
